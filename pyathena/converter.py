@@ -19,15 +19,9 @@ class Converter(object, metaclass=ABCMeta):
         default: Callable[[Optional[str]], Optional[Any]] = None,
         types: Dict[str, Type[Any]] = None,
     ) -> None:
-        if mappings:
-            self._mappings = mappings
-        else:
-            self._mappings = dict()
+        self._mappings = mappings or dict()
         self._default = default
-        if types:
-            self._types = types
-        else:
-            self._types = dict()
+        self._types = types or dict()
 
     @property
     def mappings(self) -> Dict[str, Callable[[Optional[str]], Optional[Any]]]:
@@ -77,15 +71,11 @@ def _to_time(varchar_value: Optional[str]) -> Optional[time]:
 
 
 def _to_float(varchar_value: Optional[str]) -> Optional[float]:
-    if varchar_value is None:
-        return None
-    return float(varchar_value)
+    return None if varchar_value is None else float(varchar_value)
 
 
 def _to_int(varchar_value: Optional[str]) -> Optional[int]:
-    if varchar_value is None:
-        return None
-    return int(varchar_value)
+    return None if varchar_value is None else int(varchar_value)
 
 
 def _to_decimal(varchar_value: Optional[str]) -> Optional[Decimal]:
@@ -107,9 +97,7 @@ def _to_binary(varchar_value: Optional[str]) -> Optional[bytes]:
 
 
 def _to_json(varchar_value: Optional[str]) -> Optional[Any]:
-    if varchar_value is None:
-        return None
-    return json.loads(varchar_value)
+    return None if varchar_value is None else json.loads(varchar_value)
 
 
 def _to_default(varchar_value: Optional[str]) -> Optional[str]:
@@ -153,10 +141,7 @@ class DefaultTypeConverter(Converter):
         )
 
     def convert(self, type_: str, value: Optional[str]) -> Optional[Any]:
-        converter = self.get(type_)
-        if converter:
-            return converter(value)
-        return value
+        return converter(value) if (converter := self.get(type_)) else value
 
 
 class DefaultPandasTypeConverter(Converter):

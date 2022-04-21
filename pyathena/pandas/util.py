@@ -44,7 +44,7 @@ def get_chunks(df: "DataFrame", chunksize: int = None) -> Iterator["DataFrame"]:
     elif chunksize <= 0:
         raise ValueError("Chunk size argument must be greater than zero")
 
-    chunks = int(rows / chunksize) + 1
+    chunks = rows // chunksize + 1
     for i in range(chunks):
         start_i = i * chunksize
         end_i = min((i + 1) * chunksize, rows)
@@ -54,7 +54,7 @@ def get_chunks(df: "DataFrame", chunksize: int = None) -> Iterator["DataFrame"]:
 
 
 def reset_index(df: "DataFrame", index_label: Optional[str] = None) -> None:
-    df.index.name = index_label if index_label else "index"
+    df.index.name = index_label or "index"
     try:
         df.reset_index(inplace=True)
     except ValueError as e:
@@ -77,22 +77,16 @@ def to_sql_type_mappings(col: "Series") -> str:
     import pandas as pd
 
     col_type = pd.api.types.infer_dtype(col, skipna=True)
-    if col_type == "datetime64" or col_type == "datetime":
+    if col_type in ["datetime64", "datetime"]:
         return "TIMESTAMP"
     elif col_type == "timedelta":
         return "INT"
     elif col_type == "timedelta64":
         return "BIGINT"
     elif col_type == "floating":
-        if col.dtype == "float32":
-            return "FLOAT"
-        else:
-            return "DOUBLE"
+        return "FLOAT" if col.dtype == "float32" else "DOUBLE"
     elif col_type == "integer":
-        if col.dtype == "int32":
-            return "INT"
-        else:
-            return "BIGINT"
+        return "INT" if col.dtype == "int32" else "BIGINT"
     elif col_type == "boolean":
         return "BOOLEAN"
     elif col_type == "date":
@@ -218,35 +212,37 @@ def to_sql(
                         f"{location}{partition_prefix}/",
                     )
                 )
-                for chunk in get_chunks(group, chunksize):
-                    futures.append(
-                        e.submit(
-                            to_parquet,
-                            chunk,
-                            bucket_name,
-                            f"{key_prefix}{partition_prefix}/",
-                            conn._retry_config,
-                            session_kwargs,
-                            client_kwargs,
-                            compression,
-                            flavor,
-                        )
-                    )
-        else:
-            for chunk in get_chunks(df, chunksize):
-                futures.append(
+                futures.extend(
                     e.submit(
                         to_parquet,
                         chunk,
                         bucket_name,
-                        key_prefix,
+                        f"{key_prefix}{partition_prefix}/",
                         conn._retry_config,
                         session_kwargs,
                         client_kwargs,
                         compression,
                         flavor,
                     )
+                    for chunk in get_chunks(group, chunksize)
                 )
+
+        else:
+            futures.extend(
+                e.submit(
+                    to_parquet,
+                    chunk,
+                    bucket_name,
+                    key_prefix,
+                    conn._retry_config,
+                    session_kwargs,
+                    client_kwargs,
+                    compression,
+                    flavor,
+                )
+                for chunk in get_chunks(df, chunksize)
+            )
+
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
             _logger.info(f"to_parquet: {result}")

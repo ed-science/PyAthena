@@ -140,10 +140,11 @@ class BaseCursor(object, metaclass=ABCMeta):
         schema_name: Optional[str] = None,
     ) -> AthenaTableMetadata:
         request = {
-            "CatalogName": catalog_name if catalog_name else self._catalog_name,
-            "DatabaseName": schema_name if schema_name else self._schema_name,
+            "CatalogName": catalog_name or self._catalog_name,
+            "DatabaseName": schema_name or self._schema_name,
             "TableName": table_name,
         }
+
         try:
             response = retry_api_call(
                 self._connection.client.get_table_metadata,
@@ -249,12 +250,11 @@ class BaseCursor(object, metaclass=ABCMeta):
         try:
             query_execution = self.__poll(query_id)
         except KeyboardInterrupt as e:
-            if self._kill_on_interrupt:
-                _logger.warning("Query canceled by user.")
-                self._cancel(query_id)
-                query_execution = self.__poll(query_id)
-            else:
+            if not self._kill_on_interrupt:
                 raise e
+            _logger.warning("Query canceled by user.")
+            self._cancel(query_id)
+            query_execution = self.__poll(query_id)
         return query_execution
 
     def _build_start_query_execution_request(
@@ -274,22 +274,17 @@ class BaseCursor(object, metaclass=ABCMeta):
             request["QueryExecutionContext"].update({"Catalog": self._catalog_name})
         if self._s3_staging_dir or s3_staging_dir:
             request["ResultConfiguration"].update(
-                {
-                    "OutputLocation": s3_staging_dir
-                    if s3_staging_dir
-                    else self._s3_staging_dir
-                }
+                {"OutputLocation": s3_staging_dir or self._s3_staging_dir}
             )
+
         if self._work_group or work_group:
-            request.update(
-                {"WorkGroup": work_group if work_group else self._work_group}
-            )
+            request["WorkGroup"] = work_group or self._work_group
         if self._encryption_option:
             enc_conf = {
                 "EncryptionOption": self._encryption_option,
             }
             if self._kms_key:
-                enc_conf.update({"KmsKey": self._kms_key})
+                enc_conf["KmsKey"] = self._kms_key
             request["ResultConfiguration"].update({"EncryptionConfiguration": enc_conf})
         return request
 
@@ -300,16 +295,13 @@ class BaseCursor(object, metaclass=ABCMeta):
         next_token: Optional[str] = None,
     ) -> Dict[str, Any]:
         request: Dict[str, Any] = {
-            "MaxResults": max_results
-            if max_results
-            else self.LIST_QUERY_EXECUTIONS_MAX_RESULTS
+            "MaxResults": max_results or self.LIST_QUERY_EXECUTIONS_MAX_RESULTS
         }
+
         if self._work_group or work_group:
-            request.update(
-                {"WorkGroup": work_group if work_group else self._work_group}
-            )
+            request["WorkGroup"] = work_group or self._work_group
         if next_token:
-            request.update({"NextToken": next_token})
+            request["NextToken"] = next_token
         return request
 
     def _build_list_table_metadata_request(
@@ -321,16 +313,15 @@ class BaseCursor(object, metaclass=ABCMeta):
         next_token: Optional[str] = None,
     ) -> Dict[str, Any]:
         request: Dict[str, Any] = {
-            "MaxResults": max_results
-            if max_results
-            else self.LIST_TABLE_METADATA_MAX_RESULTS,
-            "CatalogName": catalog_name if catalog_name else self._catalog_name,
-            "DatabaseName": schema_name if schema_name else self._schema_name,
+            "MaxResults": max_results or self.LIST_TABLE_METADATA_MAX_RESULTS,
+            "CatalogName": catalog_name or self._catalog_name,
+            "DatabaseName": schema_name or self._schema_name,
         }
+
         if expression:
-            request.update({"Expression": expression})
+            request["Expression"] = expression
         if next_token:
-            request.update({"NextToken": next_token})
+            request["NextToken"] = next_token
         return request
 
     def _find_previous_query_id(

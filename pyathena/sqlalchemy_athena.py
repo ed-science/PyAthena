@@ -76,7 +76,7 @@ class AthenaStatementCompiler(SQLCompiler):
     def limit_clause(self, select, **kw):
         text = ""
         if select._offset_clause is not None:
-            text += " OFFSET " + self.process(select._offset_clause, **kw)
+            text += f" OFFSET {self.process(select._offset_clause, **kw)}"
         if select._limit_clause is not None:
             text += "\n LIMIT " + self.process(select._limit_clause, **kw)
         return text
@@ -128,17 +128,13 @@ class AthenaTypeCompiler(GenericTypeCompiler):
         return self.visit_BINARY(type_, **kw)
 
     def visit_CHAR(self, type_, **kw):
-        if type_.length:
-            return self._render_string_type(type_, "CHAR")
-        return "STRING"
+        return self._render_string_type(type_, "CHAR") if type_.length else "STRING"
 
     def visit_NCHAR(self, type_, **kw):
         return self.visit_CHAR(type_, **kw)
 
     def visit_VARCHAR(self, type_, **kw):
-        if type_.length:
-            return self._render_string_type(type_, "VARCHAR")
-        return "STRING"
+        return self._render_string_type(type_, "VARCHAR") if type_.length else "STRING"
 
     def visit_NVARCHAR(self, type_, **kw):
         return self.visit_VARCHAR(type_, **kw)
@@ -215,7 +211,7 @@ class AthenaDDLCompiler(DDLCompiler):
             type_ = self.dialect.type_compiler.process(
                 column.type, type_expression=column
             )
-        colspec = self.preparer.format_column(column) + " " + type_
+        colspec = f"{self.preparer.format_column(column)} {type_}"
 
         comment = ""
         if column.comment:
@@ -231,7 +227,7 @@ class AthenaDDLCompiler(DDLCompiler):
         text = "\nCREATE EXTERNAL TABLE "
         if create.if_not_exists:
             text += "IF NOT EXISTS "
-        text += preparer.format_table(table) + " ("
+        text += f"{preparer.format_table(table)} ("
 
         separator = "\n"
         for create_column in create.columns:
@@ -266,23 +262,21 @@ class AthenaDDLCompiler(DDLCompiler):
         text = ""
 
         if table.comment:
-            text += (
-                "COMMENT " + self._escape_comment(table.comment, self.dialect) + "\n"
-            )
+            text += (f"COMMENT {self._escape_comment(table.comment, self.dialect)}" + "\n")
 
         # TODO Supports orc, avro, json, csv or tsv format
         text += "STORED AS PARQUET\n"
 
         if dialect_opts["location"]:
             location = dialect_opts["location"]
-            location += "/" if not location.endswith("/") else ""
+            location += "" if location.endswith("/") else "/"
         elif raw_connection:
             base_location = (
                 raw_connection._kwargs["s3_dir"]
                 if "s3_dir" in raw_connection._kwargs
                 else raw_connection.s3_staging_dir
             )
-            schema = table.schema if table.schema else raw_connection.schema_name
+            schema = table.schema or raw_connection.schema_name
             location = f"{base_location}{schema}/{table.name}/"
         else:
             location = None
@@ -363,14 +357,15 @@ class AthenaDialect(DefaultDialect):
 
     def _create_connect_args(self, url):
         opts = {
-            "aws_access_key_id": url.username if url.username else None,
-            "aws_secret_access_key": url.password if url.password else None,
+            "aws_access_key_id": url.username or None,
+            "aws_secret_access_key": url.password or None,
             "region_name": re.sub(
                 r"^athena\.([a-z0-9-]+)\.amazonaws\.(com|com.cn)$", r"\1", url.host
             ),
-            "schema_name": url.database if url.database else "default",
+            "schema_name": url.database or "default",
         }
-        opts.update(url.query)
+
+        opts |= url.query
         if "verify" in opts:
             verify = opts["verify"]
             try:
@@ -378,15 +373,13 @@ class AthenaDialect(DefaultDialect):
             except ValueError:
                 # Probably a file name of the CA cert bundle to use
                 pass
-            opts.update({"verify": verify})
+            opts["verify"] = verify
         if "duration_seconds" in opts:
-            opts.update({"duration_seconds": int(url.query["duration_seconds"])})
+            opts["duration_seconds"] = int(url.query["duration_seconds"])
         if "poll_interval" in opts:
-            opts.update({"poll_interval": float(url.query["poll_interval"])})
+            opts["poll_interval"] = float(url.query["poll_interval"])
         if "kill_on_interrupt" in opts:
-            opts.update(
-                {"kill_on_interrupt": bool(strtobool(url.query["kill_on_interrupt"]))}
-            )
+            opts["kill_on_interrupt"] = bool(strtobool(url.query["kill_on_interrupt"]))
         return opts
 
     @reflection.cache
@@ -401,7 +394,7 @@ class AthenaDialect(DefaultDialect):
     @reflection.cache
     def _get_table(self, connection, table_name, schema=None, **kw):
         raw_connection = self._raw_connection(connection)
-        schema = schema if schema else raw_connection.schema_name
+        schema = schema or raw_connection.schema_name
         with raw_connection.connection.cursor() as cursor:
             try:
                 return cursor._get_table_metadata(table_name, schema_name=schema)
@@ -417,7 +410,7 @@ class AthenaDialect(DefaultDialect):
     @reflection.cache
     def _get_tables(self, connection, schema=None, **kw):
         raw_connection = self._raw_connection(connection)
-        schema = schema if schema else raw_connection.schema_name
+        schema = schema or raw_connection.schema_name
         tables = []
         next_token = None
         with raw_connection.connection.cursor() as cursor:
@@ -454,7 +447,7 @@ class AthenaDialect(DefaultDialect):
     def has_table(self, connection, table_name, schema=None, **kw):
         try:
             columns = self.get_columns(connection, table_name, schema)
-            return True if columns else False
+            return bool(columns)
         except NoSuchTableError:
             return False
 
@@ -474,8 +467,7 @@ class AthenaDialect(DefaultDialect):
         ]
 
     def _get_column_type(self, type_):
-        match = self._pattern_column_type.match(type_)
-        if match:
+        if match := self._pattern_column_type.match(type_):
             name = match.group(1).lower()
             length = match.group(2)
         else:

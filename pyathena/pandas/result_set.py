@@ -67,7 +67,7 @@ class AthenaPandasResultSet(AthenaResultSet):
 
     @property
     def dtypes(self) -> Dict[Optional[Any], Type[Any]]:
-        description = self.description if self.description else []
+        description = self.description or []
         return {
             d[0]: self._converter.types[d[1]]
             for d in description
@@ -78,7 +78,7 @@ class AthenaPandasResultSet(AthenaResultSet):
     def converters(
         self,
     ) -> Dict[Optional[Any], Callable[[Optional[str]], Optional[Any]]]:
-        description = self.description if self.description else []
+        description = self.description or []
         return {
             d[0]: self._converter.mappings[d[1]]
             for d in description
@@ -87,13 +87,14 @@ class AthenaPandasResultSet(AthenaResultSet):
 
     @property
     def parse_dates(self) -> List[Optional[Any]]:
-        description = self.description if self.description else []
+        description = self.description or []
         return [d[0] for d in description if d[1] in self._parse_dates]
 
     def _trunc_date(self, df: "DataFrame") -> "DataFrame":
-        description = self.description if self.description else []
-        times = [d[0] for d in description if d[1] in ("time", "time with time zone")]
-        if times:
+        description = self.description or []
+        if times := [
+            d[0] for d in description if d[1] in ("time", "time with time zone")
+        ]:
             df.loc[:, times] = df.loc[:, times].apply(lambda r: r.dt.time)
         return df
 
@@ -104,8 +105,8 @@ class AthenaPandasResultSet(AthenaResultSet):
             return None
         else:
             self._rownumber = row[0] + 1
-            description = self.description if self.description else []
-            return tuple([row[1][d[0]] for d in description])
+            description = self.description or []
+            return tuple(row[1][d[0]] for d in description)
 
     def fetchone(self):
         return self._fetch()
@@ -115,8 +116,7 @@ class AthenaPandasResultSet(AthenaResultSet):
             size = self._arraysize
         rows = []
         for _ in range(size):
-            row = self.fetchone()
-            if row:
+            if row := self.fetchone():
                 rows.append(row)
             else:
                 break
@@ -125,8 +125,7 @@ class AthenaPandasResultSet(AthenaResultSet):
     def fetchall(self):
         rows = []
         while True:
-            row = self.fetchone()
-            if row:
+            if row := self.fetchone():
                 rows.append(row)
             else:
                 break
@@ -150,12 +149,11 @@ class AthenaPandasResultSet(AthenaResultSet):
             _logger.exception("Failed to download csv.")
             raise OperationalError(*e.args) from e
         else:
-            length = response["ContentLength"]
-            if length:
+            if length := response["ContentLength"]:
                 if self.output_location.endswith(".txt"):
                     sep = "\t"
                     header = None
-                    description = self.description if self.description else []
+                    description = self.description or []
                     names: Optional[Any] = [d[0] for d in description]
                 else:  # csv format
                     sep = ","
@@ -177,7 +175,7 @@ class AthenaPandasResultSet(AthenaResultSet):
                     **self._kwargs,
                 )
                 df = self._trunc_date(df)
-            else:  # Allow empty response
+            else:
                 df = pd.DataFrame()
             return df
 

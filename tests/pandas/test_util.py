@@ -30,7 +30,7 @@ class TestPandasUtil:
         assert [len(a) for a in actual3] == [5]
 
         # empty
-        assert list(get_chunks(pd.DataFrame())) == []
+        assert not list(get_chunks(pd.DataFrame()))
 
         # invalid
         with pytest.raises(ValueError):
@@ -78,30 +78,29 @@ class TestPandasUtil:
         )
         df = as_pandas(cursor)
         rows = [
-            tuple(
-                [
-                    row["col_boolean"],
-                    row["col_tinyint"],
-                    row["col_smallint"],
-                    row["col_int"],
-                    row["col_bigint"],
-                    row["col_float"],
-                    row["col_double"],
-                    row["col_string"],
-                    row["col_timestamp"],
-                    row["col_time"],
-                    row["col_date"],
-                    row["col_binary"],
-                    row["col_array"],
-                    row["col_array_json"],
-                    row["col_map"],
-                    row["col_map_json"],
-                    row["col_struct"],
-                    row["col_decimal"],
-                ]
+            (
+                row["col_boolean"],
+                row["col_tinyint"],
+                row["col_smallint"],
+                row["col_int"],
+                row["col_bigint"],
+                row["col_float"],
+                row["col_double"],
+                row["col_string"],
+                row["col_timestamp"],
+                row["col_time"],
+                row["col_date"],
+                row["col_binary"],
+                row["col_array"],
+                row["col_array_json"],
+                row["col_map"],
+                row["col_map_json"],
+                row["col_struct"],
+                row["col_decimal"],
             )
             for _, row in df.iterrows()
         ]
+
         expected = [
             (
                 True,
@@ -133,7 +132,7 @@ class TestPandasUtil:
             """
         )
         df = as_pandas(cursor, coerce_float=True)
-        rows = [tuple([row["a"], row["b"]]) for _, row in df.iterrows()]
+        rows = [(row["a"], row["b"]) for _, row in df.iterrows()]
         # TODO AssertionError: Lists differ:
         #  [(1.0, 2.0), (1.0, nan), (nan, nan)] != [(1.0, 2.0), (1.0, nan), (nan, nan)]
         # assert rows == [
@@ -150,7 +149,7 @@ class TestPandasUtil:
             """
         )
         df = as_pandas(cursor)
-        rows = [tuple([row["a"], row["b"]]) for _, row in df.iterrows()]
+        rows = [(row["a"], row["b"]) for _, row in df.iterrows()]
         assert rows == [(True, False), (False, None), (None, None)]
 
     def test_generate_ddl(self):
@@ -462,11 +461,12 @@ class TestPandasUtil:
     def test_to_sql_with_partitions(self, cursor):
         df = pd.DataFrame(
             {
-                "col_int": np.int32([i for i in range(10)]),
+                "col_int": np.int32(list(range(10))),
                 "col_bigint": np.int64([12345 for _ in range(10)]),
                 "col_string": ["a" for _ in range(10)],
             }
         )
+
         table_name = "to_sql_{0}".format(str(uuid.uuid4()).replace("-", ""))
         location = "{0}{1}/{2}/".format(ENV.s3_staging_dir, S3_PREFIX, table_name)
         to_sql(
@@ -489,11 +489,12 @@ class TestPandasUtil:
     def test_to_sql_with_multiple_partitions(self, cursor):
         df = pd.DataFrame(
             {
-                "col_int": np.int32([i for i in range(10)]),
+                "col_int": np.int32(list(range(10))),
                 "col_bigint": np.int64([12345 for _ in range(10)]),
                 "col_string": ["a" for _ in range(5)] + ["b" for _ in range(5)],
             }
         )
+
         table_name = "to_sql_{0}".format(str(uuid.uuid4()).replace("-", ""))
         location = "{0}{1}/{2}/".format(ENV.s3_staging_dir, S3_PREFIX, table_name)
         to_sql(

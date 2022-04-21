@@ -194,78 +194,75 @@ class TestPandasCursor:
         ).as_pandas()
         assert df.shape[0] == 1
         assert df.shape[1] == 19
-        dtypes = tuple(
-            [
-                df["col_boolean"].dtype.type,
-                df["col_tinyint"].dtype.type,
-                df["col_smallint"].dtype.type,
-                df["col_int"].dtype.type,
-                df["col_bigint"].dtype.type,
-                df["col_float"].dtype.type,
-                df["col_double"].dtype.type,
-                df["col_string"].dtype.type,
-                df["col_varchar"].dtype.type,
-                df["col_timestamp"].dtype.type,
-                df["col_time"].dtype.type,
-                df["col_date"].dtype.type,
-                df["col_binary"].dtype.type,
-                df["col_array"].dtype.type,
-                df["col_array_json"].dtype.type,
-                df["col_map"].dtype.type,
-                df["col_map_json"].dtype.type,
-                df["col_struct"].dtype.type,
-                df["col_decimal"].dtype.type,
-            ]
+        dtypes = (
+            df["col_boolean"].dtype.type,
+            df["col_tinyint"].dtype.type,
+            df["col_smallint"].dtype.type,
+            df["col_int"].dtype.type,
+            df["col_bigint"].dtype.type,
+            df["col_float"].dtype.type,
+            df["col_double"].dtype.type,
+            df["col_string"].dtype.type,
+            df["col_varchar"].dtype.type,
+            df["col_timestamp"].dtype.type,
+            df["col_time"].dtype.type,
+            df["col_date"].dtype.type,
+            df["col_binary"].dtype.type,
+            df["col_array"].dtype.type,
+            df["col_array_json"].dtype.type,
+            df["col_map"].dtype.type,
+            df["col_map_json"].dtype.type,
+            df["col_struct"].dtype.type,
+            df["col_decimal"].dtype.type,
         )
-        assert dtypes == tuple(
-            [
-                np.bool_,
-                np.int64,
-                np.int64,
-                np.int64,
-                np.int64,
-                np.float64,
-                np.float64,
-                np.object_,
-                np.object_,
-                np.datetime64,
-                np.object_,
-                np.datetime64,
-                np.object_,
-                np.object_,
-                np.object_,
-                np.object_,
-                np.object_,
-                np.object_,
-                np.object_,
-            ]
+
+        assert dtypes == (
+            np.bool_,
+            np.int64,
+            np.int64,
+            np.int64,
+            np.int64,
+            np.float64,
+            np.float64,
+            np.object_,
+            np.object_,
+            np.datetime64,
+            np.object_,
+            np.datetime64,
+            np.object_,
+            np.object_,
+            np.object_,
+            np.object_,
+            np.object_,
+            np.object_,
+            np.object_,
         )
+
         rows = [
-            tuple(
-                [
-                    row["col_boolean"],
-                    row["col_tinyint"],
-                    row["col_smallint"],
-                    row["col_int"],
-                    row["col_bigint"],
-                    row["col_float"],
-                    row["col_double"],
-                    row["col_string"],
-                    row["col_varchar"],
-                    row["col_timestamp"],
-                    row["col_time"],
-                    row["col_date"],
-                    row["col_binary"],
-                    row["col_array"],
-                    row["col_array_json"],
-                    row["col_map"],
-                    row["col_map_json"],
-                    row["col_struct"],
-                    row["col_decimal"],
-                ]
+            (
+                row["col_boolean"],
+                row["col_tinyint"],
+                row["col_smallint"],
+                row["col_int"],
+                row["col_bigint"],
+                row["col_float"],
+                row["col_double"],
+                row["col_string"],
+                row["col_varchar"],
+                row["col_timestamp"],
+                row["col_time"],
+                row["col_date"],
+                row["col_binary"],
+                row["col_array"],
+                row["col_array_json"],
+                row["col_map"],
+                row["col_map_json"],
+                row["col_struct"],
+                row["col_decimal"],
             )
             for _, row in df.iterrows()
         ]
+
         assert rows == [
             (
                 True,
@@ -352,7 +349,7 @@ class TestPandasCursor:
             SELECT * FROM integer_na_values
             """
         ).as_pandas()
-        rows = [tuple([row["a"], row["b"]]) for _, row in df.iterrows()]
+        rows = [(row["a"], row["b"]) for _, row in df.iterrows()]
         assert rows == [(1, 2), (1, pd.NA), (pd.NA, pd.NA)]
 
     def test_float_na_values(self, pandas_cursor):
@@ -361,7 +358,7 @@ class TestPandasCursor:
             SELECT * FROM (VALUES (0.33), (NULL))
             """
         ).as_pandas()
-        rows = [tuple([row[0]]) for _, row in df.iterrows()]
+        rows = [(row[0], ) for _, row in df.iterrows()]
         np.testing.assert_equal(rows, [(0.33,), (np.nan,)])
 
     def test_boolean_na_values(self, pandas_cursor):
@@ -370,7 +367,7 @@ class TestPandasCursor:
             SELECT * FROM boolean_na_values
             """
         ).as_pandas()
-        rows = [tuple([row["a"], row["b"]]) for _, row in df.iterrows()]
+        rows = [(row["a"], row["b"]) for _, row in df.iterrows()]
         assert rows == [(True, False), (False, None), (None, None)]
 
     def test_executemany(self, pandas_cursor):

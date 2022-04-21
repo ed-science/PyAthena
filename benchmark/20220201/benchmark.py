@@ -37,7 +37,7 @@ def run_pyathen_pandas_cursor(query):
         cursor_class=PandasCursor,
     ).cursor()
     avgs = []
-    for i in range(0, COUNT):
+    for i in range(COUNT):
         start = time.time()
         result = cursor.execute(query).fetchall()
         end = time.time()

@@ -21,7 +21,7 @@ class AthenaQueryExecution(object):
     STATEMENT_TYPE_UTILITY: str = "UTILITY"
 
     def __init__(self, response: Dict[str, Any]) -> None:
-        query_execution = response.get("QueryExecution", None)
+        query_execution = response.get("QueryExecution")
         if not query_execution:
             raise DataError("KeyError `QueryExecution`")
 
@@ -212,14 +212,14 @@ class AthenaTableMetadata(object):
         self._table_type: Optional[str] = table_metadata.get("TableType", None)
 
         columns = table_metadata.get("Columns", [])
-        self._columns: List[AthenaTableMetadataColumn] = []
-        for column in columns:
-            self._columns.append(AthenaTableMetadataColumn(column))
+        self._columns: List[AthenaTableMetadataColumn] = [
+            AthenaTableMetadataColumn(column) for column in columns
+        ]
 
         partition_keys = table_metadata.get("PartitionKeys", [])
-        self._partition_keys: List[AthenaTableMetadataPartitionKey] = []
-        for key in partition_keys:
-            self._partition_keys.append(AthenaTableMetadataPartitionKey(key))
+        self._partition_keys: List[AthenaTableMetadataPartitionKey] = [
+            AthenaTableMetadataPartitionKey(key) for key in partition_keys
+        ]
 
         self._parameters: Dict[str, str] = table_metadata.get("Parameters", {})
 

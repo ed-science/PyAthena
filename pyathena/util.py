@@ -18,8 +18,7 @@ PATTERN_OUTPUT_LOCATION: Pattern[str] = re.compile(
 
 
 def parse_output_location(output_location: str) -> Tuple[str, str]:
-    match = PATTERN_OUTPUT_LOCATION.search(output_location)
-    if match:
+    if match := PATTERN_OUTPUT_LOCATION.search(output_location):
         return match.group("bucket"), match.group("key")
     else:
         raise DataError("Unknown `output_location` format.")

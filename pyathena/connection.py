@@ -76,17 +76,14 @@ class Connection(object):
             "serial_number": serial_number,
             "duration_seconds": duration_seconds,
         }
-        if s3_staging_dir:
-            self.s3_staging_dir: Optional[str] = s3_staging_dir
-        else:
-            self.s3_staging_dir = os.getenv(self._ENV_S3_STAGING_DIR, None)
+        self.s3_staging_dir = s3_staging_dir or os.getenv(
+            self._ENV_S3_STAGING_DIR, None
+        )
+
         self.region_name = region_name
         self.schema_name = schema_name
         self.catalog_name = catalog_name
-        if work_group:
-            self.work_group: Optional[str] = work_group
-        else:
-            self.work_group = os.getenv(self._ENV_WORK_GROUP, None)
+        self.work_group = work_group or os.getenv(self._ENV_WORK_GROUP, None)
         self.poll_interval = poll_interval
         self.encryption_option = encryption_option
         self.kms_key = kms_key
@@ -138,8 +135,8 @@ class Connection(object):
             "athena", region_name=self.region_name, **self._client_kwargs
         )
         self._converter = converter
-        self._formatter = formatter if formatter else DefaultParameterFormatter()
-        self._retry_config = retry_config if retry_config else RetryConfig()
+        self._formatter = formatter or DefaultParameterFormatter()
+        self._retry_config = retry_config or RetryConfig()
         self.cursor_class = cursor_class
         self.kill_on_interrupt = kill_on_interrupt
 
@@ -161,15 +158,13 @@ class Connection(object):
         }
         if serial_number:
             token_code = input("Enter the MFA code: ")
-            request.update(
-                {
-                    "SerialNumber": serial_number,
-                    "TokenCode": token_code,
-                }
-            )
+            request |= {
+                "SerialNumber": serial_number,
+                "TokenCode": token_code,
+            }
+
         response = client.assume_role(**request)
-        creds: Dict[str, Any] = response["Credentials"]
-        return creds
+        return response["Credentials"]
 
     def _get_session_token(
         self,
@@ -187,8 +182,7 @@ class Connection(object):
             "TokenCode": token_code,
         }
         response = client.get_session_token(**request)
-        creds: Dict[str, Any] = response["Credentials"]
-        return creds
+        return response["Credentials"]
 
     @property
     def _session_kwargs(self) -> Dict[str, Any]:

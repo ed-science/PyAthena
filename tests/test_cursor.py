@@ -196,10 +196,8 @@ class TestCursor:
         assert cursor.description is None
 
     def test_description_failed(self, cursor):
-        try:
+        with contextlib.suppress(DatabaseError):
             cursor.execute("blah_blah")
-        except DatabaseError:
-            pass
         assert cursor.description is None
 
     def test_bad_query(self, cursor):

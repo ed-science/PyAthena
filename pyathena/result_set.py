@@ -56,117 +56,123 @@ class AthenaResultSet(CursorIterator):
 
     @property
     def database(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.database
+        return self._query_execution.database if self._query_execution else None
 
     @property
     def query_id(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.query_id
+        return self._query_execution.query_id if self._query_execution else None
 
     @property
     def query(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.query
+        return self._query_execution.query if self._query_execution else None
 
     @property
     def statement_type(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.statement_type
+        return self._query_execution.statement_type if self._query_execution else None
 
     @property
     def state(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.state
+        return self._query_execution.state if self._query_execution else None
 
     @property
     def state_change_reason(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.state_change_reason
+        return (
+            self._query_execution.state_change_reason
+            if self._query_execution
+            else None
+        )
 
     @property
     def completion_date_time(self) -> Optional[datetime]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.completion_date_time
+        return (
+            self._query_execution.completion_date_time
+            if self._query_execution
+            else None
+        )
 
     @property
     def submission_date_time(self) -> Optional[datetime]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.submission_date_time
+        return (
+            self._query_execution.submission_date_time
+            if self._query_execution
+            else None
+        )
 
     @property
     def data_scanned_in_bytes(self) -> Optional[int]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.data_scanned_in_bytes
+        return (
+            self._query_execution.data_scanned_in_bytes
+            if self._query_execution
+            else None
+        )
 
     @property
     def engine_execution_time_in_millis(self) -> Optional[int]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.engine_execution_time_in_millis
+        return (
+            self._query_execution.engine_execution_time_in_millis
+            if self._query_execution
+            else None
+        )
 
     @property
     def query_queue_time_in_millis(self) -> Optional[int]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.query_queue_time_in_millis
+        return (
+            self._query_execution.query_queue_time_in_millis
+            if self._query_execution
+            else None
+        )
 
     @property
     def total_execution_time_in_millis(self) -> Optional[int]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.total_execution_time_in_millis
+        return (
+            self._query_execution.total_execution_time_in_millis
+            if self._query_execution
+            else None
+        )
 
     @property
     def query_planning_time_in_millis(self) -> Optional[int]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.query_planning_time_in_millis
+        return (
+            self._query_execution.query_planning_time_in_millis
+            if self._query_execution
+            else None
+        )
 
     @property
     def service_processing_time_in_millis(self) -> Optional[int]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.service_processing_time_in_millis
+        return (
+            self._query_execution.service_processing_time_in_millis
+            if self._query_execution
+            else None
+        )
 
     @property
     def output_location(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.output_location
+        return self._query_execution.output_location if self._query_execution else None
 
     @property
     def data_manifest_location(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.data_manifest_location
+        return (
+            self._query_execution.data_manifest_location
+            if self._query_execution
+            else None
+        )
 
     @property
     def encryption_option(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.encryption_option
+        return (
+            self._query_execution.encryption_option
+            if self._query_execution
+            else None
+        )
 
     @property
     def kms_key(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.kms_key
+        return self._query_execution.kms_key if self._query_execution else None
 
     @property
     def work_group(self) -> Optional[str]:
-        if not self._query_execution:
-            return None
-        return self._query_execution.work_group
+        return self._query_execution.work_group if self._query_execution else None
 
     @property
     def description(
@@ -211,7 +217,7 @@ class AthenaResultSet(CursorIterator):
             "MaxResults": self._arraysize,
         }
         if next_token:
-            request.update({"NextToken": next_token})
+            request["NextToken"] = next_token
         try:
             connection = cast("Connection", self._connection)
             response = retry_api_call(
@@ -242,19 +248,17 @@ class AthenaResultSet(CursorIterator):
             self._fetch()
         if not self._rows:
             return None
-        else:
-            if self._rownumber is None:
-                self._rownumber = 0
-            self._rownumber += 1
-            return self._rows.popleft()
+        if self._rownumber is None:
+            self._rownumber = 0
+        self._rownumber += 1
+        return self._rows.popleft()
 
     def fetchmany(self, size: Optional[int] = None):
         if not size or size <= 0:
             size = self._arraysize
         rows = []
         for _ in range(size):
-            row = self.fetchone()
-            if row:
+            if row := self.fetchone():
                 rows.append(row)
             else:
                 break
@@ -263,15 +267,14 @@ class AthenaResultSet(CursorIterator):
     def fetchall(self):
         rows = []
         while True:
-            row = self.fetchone()
-            if row:
+            if row := self.fetchone():
                 rows.append(row)
             else:
                 break
         return rows
 
     def _process_meta_data(self, response: Dict[str, Any]) -> None:
-        result_set = response.get("ResultSet", None)
+        result_set = response.get("ResultSet")
         if not result_set:
             raise DataError("KeyError `ResultSet`")
         meta_data = result_set.get("ResultSetMetadata", None)
@@ -287,18 +290,16 @@ class AthenaResultSet(CursorIterator):
     ) -> List[Union[Tuple[Optional[Any], ...], Dict[Any, Optional[Any]]]]:
         return [
             tuple(
-                [
-                    self._converter.convert(
-                        meta.get("Type", None), row.get("VarCharValue", None)
-                    )
-                    for meta, row in zip(meta_data, rows[i].get("Data", []))
-                ]
+                self._converter.convert(
+                    meta.get("Type", None), row.get("VarCharValue", None)
+                )
+                for meta, row in zip(meta_data, rows[i].get("Data", []))
             )
             for i in range(offset, len(rows))
         ]
 
     def _process_rows(self, response: Dict[str, Any]) -> None:
-        result_set = response.get("ResultSet", None)
+        result_set = response.get("ResultSet")
         if not result_set:
             raise DataError("KeyError `ResultSet`")
         rows = result_set.get("Rows", None)
@@ -314,15 +315,15 @@ class AthenaResultSet(CursorIterator):
             meta_data = cast(Tuple[Any, ...], self._meta_data)
             processed_rows = self._get_rows(offset, meta_data, rows)
         self._rows.extend(processed_rows)
-        self._next_token = response.get("NextToken", None)
+        self._next_token = response.get("NextToken")
 
     def _is_first_row_column_labels(self, rows: List[Dict[str, Any]]) -> bool:
         first_row_data = rows[0].get("Data", [])
         meta_data = cast(Tuple[Any, Any], self._meta_data)
-        for meta, data in zip(meta_data, first_row_data):
-            if meta.get("Name", None) != data.get("VarCharValue", None):
-                return False
-        return True
+        return all(
+            meta.get("Name", None) == data.get("VarCharValue", None)
+            for meta, data in zip(meta_data, first_row_data)
+        )
 
     @property
     def is_closed(self) -> bool:

@@ -66,9 +66,7 @@ class TestSQLAlchemyAthena:
     def test_reflect_table_include_columns(self, engine):
         engine, conn = engine
         one_row_complex = Table("one_row_complex", MetaData())
-        version = float(
-            re.search(r"^([\d]+\.[\d]+)\..+", sqlalchemy.__version__).group(1)
-        )
+        version = float(re.search(r"^([\d]+\.[\d]+)\..+", sqlalchemy.__version__)[1])
         if version <= 1.2:
             engine.dialect.reflecttable(
                 conn, one_row_complex, include_columns=["col_int"], exclude_columns=[]

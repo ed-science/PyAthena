@@ -62,7 +62,7 @@ class AsyncPandasCursor(AsyncCursor):
         kwargs: Dict[str, Any] = None,
     ) -> AthenaPandasResultSet:
         if kwargs is None:
-            kwargs = dict()
+            kwargs = {}
         query_execution = self._poll(query_id)
         return AthenaPandasResultSet(
             connection=self._connection,

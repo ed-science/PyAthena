@@ -39,7 +39,7 @@ def run_pyathen_pandas_cursor(query):
         cursor_class=PandasCursor,
     ).cursor()
     avgs = []
-    for i in range(0, COUNT):
+    for i in range(COUNT):
         start = time.time()
         df = cursor.execute(query).as_pandas()
         end = time.time()
@@ -55,7 +55,7 @@ def run_pyathena_cursor(query):
     LOGGER.info("PyAthena Cursor ===============================")
     cursor = connect(s3_staging_dir=S3_STAGING_DIR, region_name=REGION_NAME).cursor()
     avgs = []
-    for i in range(0, COUNT):
+    for i in range(COUNT):
         start = time.time()
         result = cursor.execute(query).fetchall()
         end = time.time()
@@ -73,7 +73,7 @@ def run_pyathenajdbc_cursor(query):
         s3_staging_dir=S3_STAGING_DIR, region_name=REGION_NAME
     ).cursor()
     avgs = []
-    for i in range(0, COUNT):
+    for i in range(COUNT):
         start = time.time()
         cursor.execute(query)
         result = cursor.fetchall()

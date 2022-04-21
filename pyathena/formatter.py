@@ -171,17 +171,16 @@ class DefaultParameterFormatter(Formatter):
 
         kwargs: Optional[Dict[str, Any]] = None
         if parameters is not None:
-            kwargs = dict()
-            if isinstance(parameters, dict):
-                for k, v in parameters.items():
-                    func = self.get(v)
-                    if not func:
-                        raise TypeError("{0} is not defined formatter.".format(type(v)))
-                    kwargs.update({k: func(self, escaper, v)})
-            else:
+            kwargs = {}
+            if not isinstance(parameters, dict):
                 raise ProgrammingError(
                     "Unsupported parameter "
                     + "(Support for dict only): {0}".format(parameters)
                 )
 
+            for k, v in parameters.items():
+                func = self.get(v)
+                if not func:
+                    raise TypeError("{0} is not defined formatter.".format(type(v)))
+                kwargs[k] = func(self, escaper, v)
         return (operation % kwargs).strip() if kwargs is not None else operation.strip()
